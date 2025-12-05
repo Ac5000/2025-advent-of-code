@@ -16,20 +16,11 @@ fn get_papers(grid: &Grid) -> HashSet<Coord> {
 
 /// Get all papers with fewer than 4 papers nearby.
 fn get_accessible_papers(papers: &HashSet<Coord>) -> HashSet<Coord> {
-    let mut accessible = HashSet::new();
-    for paper in papers {
-        if paper
-            .get_surrounding_coords()
-            .intersection(&papers)
-            .collect::<HashSet<&Coord>>()
-            .len()
-            < 4
-        {
-            accessible.insert(*paper);
-        }
-    }
-
-    accessible
+    papers
+        .into_iter()
+        .filter(|&&x| x.get_surrounding_coords().intersection(&papers).count() < 4)
+        .copied()
+        .collect()
 }
 
 /// Remove the accessible_papers from the papers.
