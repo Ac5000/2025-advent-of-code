@@ -15,21 +15,30 @@ fn get_papers(grid: &Grid) -> HashSet<Coord> {
 }
 
 /// Get all papers with fewer than 4 papers nearby.
-fn get_accessible_papers(papers: &HashSet<Coord>) -> HashSet<&Coord> {
+fn get_accessible_papers(papers: &HashSet<Coord>) -> HashSet<Coord> {
     let mut accessible = HashSet::new();
     for paper in papers {
         if paper
             .get_surrounding_coords()
-            .intersection(papers)
+            .intersection(&papers)
             .collect::<HashSet<&Coord>>()
             .len()
             < 4
         {
-            accessible.insert(paper);
+            accessible.insert(*paper);
         }
     }
 
     accessible
+}
+
+/// Remove the accessible_papers from the papers.
+fn remove_papers(papers: &mut HashSet<Coord>, accessible_papers: &HashSet<Coord>) {
+    // I wanted to just use HashSet::difference, but I couldn't figure out the
+    // borrow checking...
+    for paper in accessible_papers {
+        papers.remove(&paper);
+    }
 }
 
 /// Find all @ locations with less than 4 @'s around them.
@@ -40,12 +49,28 @@ fn part1(file_name: &str) -> u32 {
     accessible_papers.len() as u32
 }
 
+/// Do part1 until you can't do it anymore.
+fn part2(file_name: &str) -> u32 {
+    let grid = Grid::new_from_file(file_name);
+    let mut papers = get_papers(&grid);
+    let mut sum = 0;
+    loop {
+        let accessible_papers = get_accessible_papers(&papers);
+        if accessible_papers.len() <= 0 {
+            break;
+        }
+        sum += accessible_papers.len() as u32;
+        remove_papers(&mut papers, &accessible_papers);
+    }
+    sum
+}
+
 /// Main function / code entry point.
 fn main() {
     println!("Sum for example1: {}", part1("example1.txt"));
     println!("Sum for input: {}", part1("input.txt"));
-    // println!("Sum for example1: {}", part2("example1.txt"));
-    // println!("Sum for input: {}", part2("input.txt"));
+    println!("Sum for example1: {}", part2("example1.txt"));
+    println!("Sum for input: {}", part2("input.txt"));
 }
 
 #[cfg(test)]
@@ -63,16 +88,16 @@ mod tests {
         assert_eq!(part1("input.txt"), 1604);
     }
 
-    // /// Test against the example.
-    // #[test]
-    // fn part2_example01() {
-    //     assert_eq!(part2("example1.txt"), 3121910778619);
-    // }
-    //
-    // #[test]
-    // fn test_part2() {
-    //     assert_eq!(part2("input.txt"), 171419245422055);
-    // }
+    /// Test against the example.
+    #[test]
+    fn part2_example01() {
+        assert_eq!(part2("example1.txt"), 43);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2("input.txt"), 9397);
+    }
 
     #[test]
     fn test_get_papers() {
