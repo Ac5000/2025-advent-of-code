@@ -5,64 +5,54 @@
 struct Bank {
     /// Battery joltages.
     joltages: Vec<u8>,
-    /// Largest first battery.
-    first: u8,
-    /// Largest first battery position.
-    first_pos: usize,
-    /// Largest second battery.
-    second: u8,
-    /// Largest second battery position.
-    second_pos: usize,
 }
 
 impl Bank {
     /// Make a new Bank from Vec of u8's.
     fn new(joltages: Vec<u8>) -> Self {
-        Self {
-            joltages,
-            first: 0,
-            first_pos: 0,
-            second: 0,
-            second_pos: 0,
-        }
+        Self { joltages }
     }
 
-    /// Find the largest joltages and their positions.
-    fn find_largest_joltages(&mut self) -> u32 {
-        let mut largest = u32::MIN;
-        let mut largest_first = u8::MIN;
-        let mut first_pos: usize = 0;
-        let mut largest_second = u8::MIN;
-        let mut second_pos: usize = 0;
-        let end = self.joltages.len();
-        for (pos1, joltage1) in self.joltages.iter().enumerate() {
-            let second_range = &self.joltages[pos1 + 1..end];
-            for (pos2, joltage2) in second_range.iter().enumerate() {
-                if two_u8_to_u32(*joltage1, *joltage2) > largest {
-                    largest_first = *joltage1;
-                    first_pos = pos1;
-                    largest_second = *joltage2;
-                    second_pos = pos2 + pos1 + 1; // since second loop starts here.
-                    largest = two_u8_to_u32(largest_first, largest_second);
-                }
+    /// Find the largest joltage in the range provided. (Jolts,pos)
+    fn find_largest_in_range(&self, start: usize, end: usize) -> (u8, usize) {
+        let mut largest = u8::MIN;
+        let mut largest_pos = usize::MIN;
+        for (pos, joltage) in self.joltages[start..=end].iter().enumerate() {
+            if joltage > &largest {
+                largest = *joltage;
+                largest_pos = pos + start;
             }
 
-            // Stop iterating if we found a 99 since can't be higher.
-            if largest == 99 {
+            // Stop iterating if we found a 9 since can't be higher.
+            if largest == 9 {
                 break;
             }
         }
-        self.first = largest_first;
-        self.first_pos = first_pos;
-        self.second = largest_second;
-        self.second_pos = second_pos;
-        largest
+        (largest, largest_pos)
+    }
+
+    /// Find the largest joltage given the number of digits/batteries to use.
+    fn find_largest_by_num_digits(&self, digits: usize) -> u64 {
+        let mut ordered_digits: Vec<u8> = Vec::with_capacity(digits);
+        let mut start = 0;
+        for digit in (0..digits).rev() {
+            let (num, pos) = self.find_largest_in_range(start, self.joltages.len() - 1 - digit);
+            start = pos + 1;
+            ordered_digits.push(num);
+        }
+
+        combine_u8s_to_u64(ordered_digits)
     }
 }
 
-/// Take 2 u8's and turn into u32 where one = 10's digit, two = 1's digit.
-fn two_u8_to_u32(one: u8, two: u8) -> u32 {
-    (one as u32 * 10) + two as u32
+/// Take a vec of u8's and combine them into a single number. Vec[0] = 1's digit.
+fn combine_u8s_to_u64(digits: Vec<u8>) -> u64 {
+    let mut ret: u64 = 0;
+    for (pos, digit) in digits.into_iter().rev().enumerate() {
+        let digit = digit;
+        ret += digit as u64 * 10_u64.pow(pos as u32);
+    }
+    ret
 }
 
 /// Parse the incoming file to Vec of Bank's
@@ -85,22 +75,36 @@ fn parse_text(string: &String) -> Vec<Bank> {
     ret
 }
 
-/// Add all invalid IDs together. Invalid IDs are sequences of digits that repeat
-/// twice.
-fn part1(file_name: &str) -> u32 {
+/// For each bank, get the largest 2 digit number. Digit ordering dictated by order
+/// in the bank. (E.g. 1's digit must come after 10's.)
+fn part1(file_name: &str) -> u64 {
     let file_contents = std::fs::read_to_string(file_name).expect("Couldn't open file");
     let banks = parse_text(&file_contents);
     let mut sum = 0;
-    for mut bank in banks {
-        sum += bank.find_largest_joltages();
+    for bank in banks {
+        sum += bank.find_largest_by_num_digits(2);
+    }
+    sum
+}
+
+/// For each bank, get the largest 12 digit number. Digit ordering dictated by order
+/// in the bank. (E.g. 1's digit must come after 10's.)
+fn part2(file_name: &str) -> u64 {
+    let file_contents = std::fs::read_to_string(file_name).expect("Couldn't open file");
+    let banks = parse_text(&file_contents);
+    let mut sum = 0;
+    for bank in banks {
+        sum += bank.find_largest_by_num_digits(12);
     }
     sum
 }
 
 /// Main function / code entry point.
 fn main() {
-    println!("Sum of invalid IDs for example1: {}", part1("example1.txt"));
-    println!("Sum of invalid IDs for input: {}", part1("input.txt"));
+    println!("Sum for example1: {}", part1("example1.txt"));
+    println!("Sum for input: {}", part1("input.txt"));
+    println!("Sum for example1: {}", part2("example1.txt"));
+    println!("Sum for input: {}", part2("input.txt"));
 }
 
 #[cfg(test)]
@@ -118,6 +122,17 @@ mod tests {
         assert_eq!(part1("input.txt"), 17311);
     }
 
+    /// Test against the example.
+    #[test]
+    fn part2_example01() {
+        assert_eq!(part2("example1.txt"), 3121910778619);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2("input.txt"), 171419245422055);
+    }
+
     #[test]
     fn test_parse_text() {
         let input = "9876".to_string();
@@ -126,26 +141,21 @@ mod tests {
     }
 
     #[test]
-    fn test_find_largest_joltage() {
-        let mut bank = Bank::new(vec![9, 8, 7, 6]);
-        assert_eq!(bank.find_largest_joltages(), 98);
-        assert_eq!(bank.first, 9);
-        assert_eq!(bank.first_pos, 0);
-        assert_eq!(bank.second, 8);
-        assert_eq!(bank.second_pos, 1);
+    fn test_find_largest_in_range() {
+        let bank = Bank::new(vec![9, 8, 7, 6, 9]);
+        assert_eq!(bank.find_largest_in_range(1, 2), (8, 1));
+    }
 
-        let mut bank = Bank::new(vec![8, 1, 1, 9]);
-        assert_eq!(bank.find_largest_joltages(), 89);
-        assert_eq!(bank.first, 8);
-        assert_eq!(bank.first_pos, 0);
-        assert_eq!(bank.second, 9);
-        assert_eq!(bank.second_pos, 3);
+    #[test]
+    fn test_combine_u8s_to_u64() {
+        assert_eq!(combine_u8s_to_u64(vec![1, 2, 3, 4]), 1234)
+    }
 
-        let mut bank = Bank::new(vec![2, 3, 4, 2, 7, 8]);
-        assert_eq!(bank.find_largest_joltages(), 78);
-        assert_eq!(bank.first, 7);
-        assert_eq!(bank.first_pos, 4);
-        assert_eq!(bank.second, 8);
-        assert_eq!(bank.second_pos, 5);
+    #[test]
+    fn test_find_largest_by_num_digits() {
+        let bank = Bank::new(vec![9, 8, 7, 6, 9]);
+        assert_eq!(bank.find_largest_by_num_digits(2), 99);
+        let bank = Bank::new(vec![2, 3, 4, 2, 7, 8]);
+        assert_eq!(bank.find_largest_by_num_digits(3), 478);
     }
 }
