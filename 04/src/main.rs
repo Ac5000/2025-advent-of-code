@@ -25,23 +25,21 @@ fn get_accessible_papers(papers: &HashSet<Coord>) -> HashSet<Coord> {
 
 /// Remove the accessible_papers from the papers.
 fn remove_papers(papers: &mut HashSet<Coord>, accessible_papers: &HashSet<Coord>) {
-    // I wanted to just use HashSet::difference, but I couldn't figure out the
-    // borrow checking...
     for paper in accessible_papers {
         papers.remove(&paper);
     }
 }
 
 /// Find all @ locations with less than 4 @'s around them.
-fn part1(file_name: &str) -> u32 {
+fn part1(file_name: &str) -> usize {
     let grid = Grid::new_from_file(file_name);
     let papers = get_papers(&grid);
     let accessible_papers = get_accessible_papers(&papers);
-    accessible_papers.len() as u32
+    accessible_papers.len()
 }
 
 /// Do part1 until you can't do it anymore.
-fn part2(file_name: &str) -> u32 {
+fn part2(file_name: &str) -> usize {
     let grid = Grid::new_from_file(file_name);
     let mut papers = get_papers(&grid);
     let mut sum = 0;
@@ -50,7 +48,7 @@ fn part2(file_name: &str) -> u32 {
         if accessible_papers.len() <= 0 {
             break;
         }
-        sum += accessible_papers.len() as u32;
+        sum += accessible_papers.len();
         remove_papers(&mut papers, &accessible_papers);
     }
     sum
