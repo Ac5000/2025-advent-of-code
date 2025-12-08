@@ -28,6 +28,9 @@ version = "0.1.0"
 [[package]]
 name = "day06"
 version = "0.1.0"
+dependencies = [
+ "utilities",
+]
 
 [[package]]
 name = "utilities"
