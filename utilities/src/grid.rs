@@ -1,12 +1,13 @@
 //! Module for making a grid or map. Having done AoC once before, I know that having
 //! a reusable base for making grids is useful.
+use std::ops::RangeInclusive;
 use std::{collections::HashMap, fmt};
 
 use crate::color_text::cyan;
 use crate::coord::Coord;
 
 /// Structure representing a grid/map/2D array.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Grid {
     pub char_map: HashMap<Coord, char>,
     pub max_x: i32,
@@ -121,16 +122,14 @@ impl fmt::Display for Grid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let width = self.max_y.to_string().len();
         write!(f, "{}", self.x_legend())?;
-        for y in 0..self.max_y + 1 {
+        for y in 0..=self.max_y {
             let y_legend: String = cyan(&format!("{:>width$}{}", y, Self::Y_LEGEND_SEP));
             write!(f, "{y_legend}")?;
-            for x in 0..self.max_x + 1 {
+            for x in 0..=self.max_x {
                 write!(
                     f,
                     "{}",
-                    self.char_map
-                        .get(&Coord::new(x, y))
-                        .expect("Didn't find char to print.")
+                    self.char_map.get(&Coord::new(x, y)).unwrap_or(&' ')
                 )?;
             }
             if y < self.max_y {
@@ -139,6 +138,17 @@ impl fmt::Display for Grid {
         }
         Ok(())
     }
+}
+/// Returns an Iterator over the possible Coords of the map going left->right,
+/// top->bottom.
+pub fn iter_char_map_keys<'a>(max_x: i32, max_y: i32) -> impl Iterator<Item = Coord> + 'a {
+    RangeInclusive::new(0, max_y)
+        .into_iter()
+        .flat_map(move |y| {
+            RangeInclusive::new(0, max_x)
+                .into_iter()
+                .map(move |x| Coord::new(x, y))
+        })
 }
 
 #[cfg(test)]
@@ -155,8 +165,7 @@ mod tests {
 
     #[test]
     fn test_new_grid_from_string() {
-        let string: String = "123\n456".to_string();
-        let grid = Grid::new_from_string(&string);
+        let grid = Grid::new_from_string(&"123\n456".to_string());
         assert_eq!(grid.max_x, 2);
         assert_eq!(grid.max_y, 1);
         assert_eq!(grid.char_map.get(&Coord::new(0, 2)), None);
@@ -174,6 +183,21 @@ mod tests {
         let string: String = "123\n456".to_string();
         let grid = Grid::new_from_string(&string);
         assert_eq!(grid.get_y_legend_width(), 4)
+    }
+
+    #[test]
+    fn test_iter_char_map_keys() {
+        let grid = Grid::new_from_string(&"123\n456".to_string());
+        assert_eq!(grid.max_x, 2);
+        assert_eq!(grid.max_y, 1);
+        let mut iter = iter_char_map_keys(grid.max_x, grid.max_y);
+        assert_eq!(iter.next(), Some(Coord::new(0, 0)));
+        assert_eq!(iter.next(), Some(Coord::new(1, 0)));
+        assert_eq!(iter.next(), Some(Coord::new(2, 0)));
+        assert_eq!(iter.next(), Some(Coord::new(0, 1)));
+        assert_eq!(iter.next(), Some(Coord::new(1, 1)));
+        assert_eq!(iter.next(), Some(Coord::new(2, 1)));
+        assert_eq!(iter.next(), None);
     }
 
     // #[test]
