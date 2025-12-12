@@ -118,7 +118,7 @@ fn connect_circuits(
     circuits: &mut HashMap<JunctionBox, Circuit>,
     btree_distances: &BTreeMap<i64, (JunctionBox, JunctionBox)>,
     quantity: usize,
-) {
+) -> i64 {
     // Iterator is already sorted because of BTreeMap.
     for (_, (jbox1, jbox2)) in btree_distances.iter().take(quantity) {
         let jbox1_key = find_jbox_circuit(&circuits, &jbox1);
@@ -129,6 +129,11 @@ fn connect_circuits(
             continue;
         }
 
+        // For part 2, we catch the last two circuits and product the x's.
+        if circuits.len() == 2 {
+            return jbox1.x * jbox2.x;
+        }
+
         let circuit2 = circuits
             .remove(&jbox2_key)
             .expect("connect_circuits failed to remove from circuit.");
@@ -136,21 +141,14 @@ fn connect_circuits(
             .entry(jbox1_key)
             .and_modify(|c| c.combine(circuit2));
     }
+    0
 }
 
 /// Product of the 3 largest circuits. Circuits = number of JunctionBoxes.
 fn part1(file_name: &str, number_circuits: usize) -> usize {
     let file_contents = std::fs::read_to_string(file_name).expect("Couldn't open file");
     let junction_boxes = parse_text(&file_contents);
-    println!(
-        "There are {} junction_boxes at start.",
-        junction_boxes.len()
-    );
     let btree_distances = btree_of_distances(&junction_boxes);
-    println!(
-        "There are {} btree_of_distances found.",
-        btree_distances.len()
-    );
 
     let mut circuits = junction_boxes
         .into_iter()
@@ -170,12 +168,27 @@ fn part1(file_name: &str, number_circuits: usize) -> usize {
         .product()
 }
 
+/// Product of the "x" coordinates of the last two junction boxes you need to connect
+/// if you connect them all.
+fn part2(file_name: &str) -> i64 {
+    let file_contents = std::fs::read_to_string(file_name).expect("Couldn't open file");
+    let junction_boxes = parse_text(&file_contents);
+    let btree_distances = btree_of_distances(&junction_boxes);
+
+    let mut circuits = junction_boxes
+        .into_iter()
+        .map(|jbox| (jbox, Circuit::new(jbox)))
+        .collect::<HashMap<JunctionBox, Circuit>>();
+
+    connect_circuits(&mut circuits, &btree_distances, btree_distances.len())
+}
+
 /// Main function / code entry point.
 fn main() {
     println!("Sum for example1: {}", part1("example1.txt", 10));
     println!("Sum for input: {}", part1("input.txt", 1000));
-    // println!("Sum for example1 part2: {}", part2("example1.txt"));
-    // println!("Sum for input part2: {}", part2("input.txt"));
+    println!("Sum for example1 part2: {}", part2("example1.txt"));
+    println!("Sum for input part2: {}", part2("input.txt"));
 }
 
 #[cfg(test)]
@@ -194,16 +207,16 @@ mod tests {
         assert_eq!(part1("input.txt", 1000), 175500);
     }
 
-    // /// Test against the example.
-    // #[test]
-    // fn part2_example01() {
-    //     assert_eq!(part2("example1.txt"), 40);
-    // }
+    /// Test against the example.
+    #[test]
+    fn part2_example01() {
+        assert_eq!(part2("example1.txt"), 25272);
+    }
 
-    // #[test]
-    // fn test_part2() {
-    //     assert_eq!(part2("input.txt"), 16937871060075);
-    // }
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2("input.txt"), 6934702555);
+    }
 
     // Again, this was working but the rounding from isqrt caused more issues
     // than it was worth getting "real" distances.
