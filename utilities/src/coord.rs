@@ -76,6 +76,15 @@ impl Coord {
             self.northwest(),
         ])
     }
+
+    /// Partially get the distance between two points. If you square root the result
+    /// it will be the complete distance. Done this way since usually don't care
+    /// about the absolute distance and just need the relative.
+    pub fn distance_between(&self, other: &Self) -> i64 {
+        // Convert to i64's otherwise the power can multiply into overflow.
+        (i64::from(self.x) - i64::from(other.x)).pow(2)
+            + (i64::from(self.y) - i64::from(other.y)).pow(2)
+    }
 }
 
 impl fmt::Display for Coord {

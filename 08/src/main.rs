@@ -68,7 +68,7 @@ impl Debug for Circuit {
     }
 }
 
-/// Parse the incoming file to VecDeque of JunctionBoxes.
+/// Parse the incoming file to Vec of JunctionBoxes.
 fn parse_text(string: &String) -> Vec<JunctionBox> {
     let mut junction_boxes: Vec<JunctionBox> = Vec::new();
 
