@@ -8,13 +8,30 @@ use std::{
     ops::{Add, Sub},
 };
 
-/// Structure representing a coordinate on the grid.
+/// Structure representing a coordinate in 2D space.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Coord {
     /// X coordinate.
     pub x: i32,
     /// Y coordinate.
     pub y: i32,
+}
+
+/// Create a new coordinate with the given components.
+/// ```rust
+/// # use utilities::coord;
+/// coord!(1, 2);
+/// ```
+/// The above will expand to:
+/// ```rust
+/// # use utilities::coord;
+/// Coord::new(1, 2);
+/// ````
+#[macro_export]
+macro_rules! coord {
+    ($($x:expr, $y:expr)+) => {
+        $($crate::Coord::new(($x),($y)))+
+    };
 }
 
 impl Coord {
