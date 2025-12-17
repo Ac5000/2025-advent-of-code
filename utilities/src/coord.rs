@@ -24,7 +24,7 @@ pub struct Coord {
 /// ```
 /// The above will expand to:
 /// ```rust
-/// # use utilities::coord;
+/// # use utilities::Coord;
 /// Coord::new(1, 2);
 /// ````
 #[macro_export]
