@@ -162,11 +162,46 @@ fn part1(file_name: &str) -> u64 {
     ret
 }
 
+/// For each machine, figure out minimum number of button presses to make joltage
+/// levels match the given diagram. Sum all the minimums for final answer.
+fn part2(file_name: &str) -> u64 {
+    let file_contents = std::fs::read_to_string(file_name).expect("Couldn't open file");
+    let machines = parse_text(&file_contents);
+    let mut ret = 0;
+
+    for machine in machines {
+        // queue is a tuple<T> where T.0 = the state of the lights and T.1 = number
+        // of button presses it took to get to that state.
+        let mut queue = VecDeque::new();
+        // seen is a HashSet of all the states we've seen for the lights.
+        let mut seen = HashSet::new();
+        // Start off the queue with all lights off and no button presses.
+        queue.push_back((0, 0));
+
+        while let Some((lights, presses)) = queue.pop_front() {
+            if lights == machine.lights_required {
+                ret += presses;
+                break;
+            }
+
+            for button in &machine.buttons {
+                let next = lights ^ button;
+
+                if !seen.contains(&next) {
+                    seen.insert(next);
+                    queue.push_back((next, presses + 1));
+                }
+            }
+        }
+    }
+    ret
+}
+
 /// Main function / code entry point.
 fn main() {
     println!("Sum for example1: {}", part1("example1.txt"));
     println!("Sum for input: {}", part1("input.txt"));
-    // println!("Sum for example1 part2: {}", part2("example1.txt"));
+    println!("Sum for example1 part2: {}", part2("example1.txt"));
     // println!("Sum for input part2: {}", part2("input.txt"));
 }
 
@@ -185,12 +220,12 @@ mod tests {
         assert_eq!(part1("input.txt"), 475);
     }
 
-    // /// Test against the example.
-    // #[test]
-    // fn part2_example01() {
-    //     assert_eq!(part2("example1.txt"), 24);
-    // }
-    //
+    /// Test against the example.
+    #[test]
+    fn part2_example01() {
+        assert_eq!(part2("example1.txt"), 33);
+    }
+
     // #[test]
     // fn test_part2() {
     //     let part2 = part2("input.txt");
